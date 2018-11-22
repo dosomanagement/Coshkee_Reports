@@ -14,18 +14,33 @@ where 	 pb.ResourceName in
 option (recompile)
 
 
-select top 1000 id from useractivity order by id 
---select min(id) from UserActivity
---DBCC CHECKIDENT ('[UserActivity]', RESEED, 0);
 
-SELECT description, 
-       resourcename, 
-       SUM(activeduration) SumActiveDuration, 
-       dbo.Sec2TimeD(SUM(activeduration)), 
-       COUNT(*)
-FROM Reporting.UserActivities2Clarify
-WHERE resourcename NOT IN('google.ge', 'google.com', 'google.ru', 'bing.com', 'yahoo.com')
-GROUP BY description, 
-         resourcename
-HAVING SUM(activeduration) > 600
-ORDER BY SUM(activeduration) DESC;
+--Insert into ProductivityBase
+WITH cte
+     AS (SELECT left(dbo.LeftFrom('aspx', Description),500) NewResourceName, 
+                resourcename ExistingResourceName, 
+                SUM(activeduration) SumActiveDuration, 
+                --dbo.Sec2TimeD(SUM(activeduration)), 
+                COUNT(*) RCount
+         FROM Reporting.UserActivities2Clarify
+         --WHERE resourcename NOT IN('google.ge', 'google.com', 'google.ru', 'bing.com', 'yahoo.com')
+         GROUP BY description, 
+                  resourcename
+         HAVING SUM(activeduration) > 600),
+     resourcesToInsertInProductivityBase
+     AS (SELECT cte.NewResourceName
+         FROM cte
+              LEFT JOIN ProductivityBase pb ON pb.ResourceName = cte.NewResourceName
+         WHERE pb.ID IS NULL)
+     INSERT INTO ProductivityBase
+     (ApplicationOrWebsite, 
+      CreatedOn, 
+      SavedOn, 
+      ResourceName
+     )
+     SELECT 1, 
+            GETDATE(), 
+            GETDATE(), 
+            left(dbo.LeftFrom('aspx', NewResourceName),500)
+     FROM resourcesToInsertInProductivityBase
+     ORDER BY LEN(dbo.LeftFrom('aspx', NewResourceName)) DESC;

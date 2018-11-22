@@ -2,6 +2,8 @@ DECLARE @from INT= 9;
 DECLARE @till INT= 19;
 DECLARE @debug BIT= 0;
 DECLARE @monthly BIT= 0;
+declare @weekday_from int = 2;
+declare @weekday_till int = 7;
 
 /*
 IF OBJECT_ID('tempdb.dbo.#ActivityTimes', 'U') IS NOT NULL
@@ -20,7 +22,7 @@ IF OBJECT_ID('tempdb.dbo.#ActivityTimes', 'U') IS NULL
              AS (SELECT up.systemuser, 
                         up.productivitybase, 
                         SUM(CASE
-                              WHEN DATEPART(dw, up.Date) BETWEEN 2 AND 7
+                              WHEN DATEPART(dw, up.Date) BETWEEN @weekday_from AND @weekday_till
                                    AND HourFrom BETWEEN @from AND @till THEN DailyDuration
                               ELSE 0
                             END) WorkDuration, 
@@ -132,7 +134,7 @@ IF OBJECT_ID('tempdb.dbo.#Main', 'U') IS NULL
                       JOIN ProductivityBase pb ON pb.ID = up.ProductivityBase
                       LEFT JOIN UserProductivityDailyDetail upwh ON up.oid = upwh.Oid
                                                                     AND upwh.HourFrom BETWEEN @from AND @till
-                                                                    AND DATEPART(dw, upwh.Date) BETWEEN 2 AND 6
+                                                                    AND DATEPART(dw, upwh.Date) BETWEEN @weekday_from and @weekday_till
                  WHERE pb.ResourceName NOT LIKE '%lockapp%'
                        AND up.Date BETWEEN '1Jun2018' AND GETDATE()
                  --     JOIN ProductivityBase pb ON pb.ID = up.ProductivityBase
